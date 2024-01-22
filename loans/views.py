@@ -11,22 +11,35 @@ class BankListCreateView(generics.ListCreateAPIView):
     serializer_class = BankSerializer
     
     def get_permissions(self):
-        permission_classes = []
-        if self.request.method: 
-            permission_classes = [IsAuthenticated]
+        permission_classes = [IsAuthenticated]
 
-        return [permission() for permission in permission_classes]
+        # Check if the user belongs to the "bank_personnel" group
+        if self.request.user.groups.filter(name='bank_personnel').exists():
+            return [permission() for permission in permission_classes]
+        else:
+            # If not, deny access
+            return [DenyPermission()]
+        
+        
+class DenyPermission:
+    def has_permission(self, request, view):
+        return False 
 
 class LoanProviderView(generics.ListCreateAPIView):
     queryset = LoanProvider.objects.all()
     serializer_class = LoanProviderSerializer
     
     
+    
     def get_permissions(self):
-        permission_classes = []
-        if self.request.method: 
-            permission_classes = [IsAuthenticated]
-        return [permission() for permission in permission_classes]
+        permission_classes = [IsAuthenticated]
+
+        # Check if the user belongs to the "loan_provider" group
+        if self.request.user.groups.filter(name='loan_provider').exists():
+            return [permission() for permission in permission_classes]
+        else:
+            # If not, deny access
+            return [DenyPermission()]
     
     def get_queryset(self):
         name = self.kwargs.get('name', None)
@@ -68,10 +81,14 @@ class LoanListCreateView(generics.ListCreateAPIView):
     
     
     def get_permissions(self):
-        permission_classes = []
-        if self.request.method: 
-            permission_classes = [IsAuthenticated]
-        return [permission() for permission in permission_classes]
+        permission_classes = [IsAuthenticated]
+
+        # Check if the user belongs to the "bank_personnel" group
+        if self.request.user.groups.filter(name='bank_personnel').exists():
+            return [permission() for permission in permission_classes]
+        else:
+            # If not, deny access
+            return [DenyPermission()]
     
     def perform_create(self, serializer):
         # Get the bank associated with the new loan
@@ -100,16 +117,32 @@ class LoanListCreateView(generics.ListCreateAPIView):
 class LoanCustomerDetailView(generics.ListCreateAPIView):
     queryset = LoanCustomer.objects.all()
     serializer_class = LoanCustomerSerializer
+    
     def get_permissions(self):
-        permission_classes = []
-        if self.request.method: 
-            permission_classes = [IsAuthenticated]
-        return [permission() for permission in permission_classes]
+        permission_classes = [IsAuthenticated]
+
+        # Check if the user belongs to the "bank_personnel" group
+        if self.request.user.groups.filter(name='bank_personnel').exists():
+            return [permission() for permission in permission_classes]
+        else:
+            # If not, deny access
+            return [DenyPermission()]
 
 
 class LoanApplicationCreateView(generics.ListCreateAPIView):
     queryset = LoanApplication.objects.all()
     serializer_class = LoanApplicationSerializer
+    
+    
+    def get_permissions(self):
+        permission_classes = [IsAuthenticated]
+
+        # Check if the user belongs to the "bank_personnel" group
+        if self.request.user.groups.filter(name='bank_personnel').exists():
+            return [permission() for permission in permission_classes]
+        else:
+            # If not, deny access
+            return [DenyPermission()]
 
     def perform_create(self, serializer):
         loan = serializer.validated_data['loan']
@@ -137,7 +170,45 @@ class LoanApplicationCreateView(generics.ListCreateAPIView):
 
         # Associate the loan with the user
         user.loan = True
-        #user.balance -= amount
+
         user.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    
+    
+    
+       
+class LoanPaymentView(generics.RetrieveUpdateAPIView):
+    queryset = LoanApplication.objects.all()
+    serializer_class = LoanApplicationSerializer
+    
+    def put(self, request, *args, **kwargs):
+        # The 'request' parameter is required, but *args and **kwargs allow
+        # the method to accept additional arguments without explicitly defining them.
+        try:
+            # Retrieve the LoanApplication instance
+            loan_application = self.get_object()
+
+            # Get the amount_paid from the request data
+            amount_paid = request.data.get('amount_paid')
+
+            # Validate if the user has enough balance
+            loan_customer = loan_application.LoanCustomer
+            if loan_application.fully_paid== True:
+                return Response({"error": "already fully paid"}, status=status.HTTP_400_BAD_REQUEST)
+            if float(loan_customer.balance) < float(amount_paid):
+                return Response({"error": "Insufficient balance in the loanCustomer please add balance to pay"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update amount_paid and remaining amount_to_pay
+            loan_application.make_payment(amount_paid)
+
+            # Check if the loan is fully paid after the update
+            if loan_application.amount_paid == loan_application.amount_to_pay:
+                loan_application.fully_paid = True
+                loan_application.save()
+
+            return Response({"message": "Payment successful"}, status=status.HTTP_200_OK)
+
+        except LoanApplication.DoesNotExist:
+            return Response({"error": "Loan application not found"}, status=status.HTTP_404_NOT_FOUND)

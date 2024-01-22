@@ -48,6 +48,8 @@ class LoanApplication(models.Model):
     LoanCustomer=models.ForeignKey(LoanCustomer, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     amount_to_pay = models.DecimalField(max_digits=15, decimal_places=2)
+    amount_paid=models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    fully_paid=models.BooleanField(default=False)
     
     def save(self, *args, **kwargs):
         # Calculate amount_to_pay based on amount and loan's interest_rate
@@ -56,3 +58,32 @@ class LoanApplication(models.Model):
             interest_rate_decimal = interest_rate_percentage / 100  # Convert percentage to decimal
             self.amount_to_pay = self.amount * (1 + interest_rate_decimal)
         super().save(*args, **kwargs)
+        
+    def make_payment(self, amount_paid):
+        # Check if the amount_paid is a valid decimal number
+        try:
+            amount_paid_decimal = models.DecimalField().to_python(amount_paid)
+        except (ValueError, TypeError, models.ValidationError):
+            raise models.ValidationError({"error": "Amount paid must be a valid decimal number"})
+
+        if amount_paid_decimal < 0:
+            raise models.ValidationError({"error": "Amount paid must be a non-negative value"})
+
+        # Check if the amount_paid is within the remaining amount_to_pay
+        remaining_amount_to_pay = self.amount_to_pay - amount_paid_decimal
+        if remaining_amount_to_pay < 0:
+            raise models.ValidationError({"error": "Amount paid exceeds the remaining amount_to_pay"})
+
+        # Update the remaining amount_to_pay
+        self.amount_paid+=amount_paid_decimal
+        self.save()
+
+        # Deduct the payment from the associated user's balance
+        loan_customer = self.LoanCustomer
+        loan_customer.balance -= amount_paid_decimal
+        loan_customer.save()
+        
+        # Add the payment to the bank's total funds
+        bank = self.loan.bank
+        bank.total_funds += amount_paid_decimal
+        bank.save()

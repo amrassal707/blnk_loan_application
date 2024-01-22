@@ -8,10 +8,13 @@ class BankSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class LoanProviderSerializer(serializers.ModelSerializer):
+    bank_name = serializers.SerializerMethodField()
     class Meta:
         model = LoanProvider
-        fields = '__all__'
-        
+        fields = ['id','LoanProviderName','budget','bank_name', 'bank'] # I dont want to show the id of the bank, rather the name to make it more readable
+    
+    def get_bank_name(self, obj):
+        return obj.bank.name
         
         
 class LoanSerializer(serializers.ModelSerializer):
@@ -32,4 +35,9 @@ class LoanCustomerSerializer(serializers.ModelSerializer):
 class LoanApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoanApplication
-        fields = '__all__'
+        fields='__all__'
+       # exclude = ['amount_to_pay'] # since it's calculated internally, i dont want it to be shown to the user  
+       
+       
+    amount_to_pay = serializers.ReadOnlyField()
+    fully_paid=serializers.ReadOnlyField()
