@@ -1,0 +1,82 @@
+Loan Management System Documentation
+API Endpoints
+Banks
+GET /banks/: Retrieve a list of all banks.
+POST /banks/: Create a new bank.
+Permissions: Requires authentication. Restricted to users belonging to the "bank_personnel" group.
+Loan Providers
+GET /loan-providers/: Retrieve a list of all loan providers.
+POST /loan-providers/: Create a new loan provider.
+Permissions: Requires authentication. Restricted to users belonging to the "loan_provider" group.
+Loans
+GET /loans/: Retrieve a list of all loans.
+POST /loans/: Create a new loan.
+Permissions: Requires authentication. Restricted to users belonging to the "bank_personnel" group.
+Loan Customers
+GET /loan-customers/: Retrieve a list of all loan customers.
+Permissions: Requires authentication. Restricted to users belonging to the "bank_personnel" group.
+Loan Applications
+GET /loan-applications/: Retrieve a list of all loan applications.
+POST /loan-applications/: Create a new loan application.
+Permissions: Requires authentication. Restricted to users belonging to the "bank_personnel" group.
+Loan Payments
+PUT /loan-applications/{id}/: Make a payment for a specific loan application.
+Permissions: Requires authentication. Restricted to users belonging to the "bank_personnel" group.
+Application Overview
+The Loan Management System is a Django-based web application designed to manage loans and loan applications for banks and loan providers. The application includes the following key models:
+
+User Model (Customized):
+
+Extends the Django AbstractUser model.
+Represents users within the system.
+Bank Model:
+
+Represents a bank with a name and total funds.
+Used to manage and track the financial status of banks.
+Loan Provider Model:
+
+Represents a loan provider with a name, associated bank, and budget.
+Used to manage entities that offer loans.
+Loan Model:
+
+Represents a loan with details such as term, interest rate, and amount limits.
+Associated with a specific bank.
+Loan Customer Model:
+
+Represents a user with a one-to-one relationship to the custom user model.
+Includes information such as balance and loan status.
+Loan Application Model:
+
+Represents a loan application with details such as loan amount and payment status.
+Associated with a specific loan and loan customer.
+The application provides the following functionalities:
+
+Bank Management:
+
+View a list of all banks.
+Create new banks.
+Requires authentication as a user belonging to the "bank_personnel" group.
+Loan Provider Management:
+
+View a list of all loan providers.
+Create new loan providers.
+View loan providers associated with a specific bank.
+Requires authentication as a user belonging to the "loan_provider" group.
+Loan Management:
+
+View a list of all loans.
+Create new loans.
+View details of a specific loan.
+Requires authentication as a user belonging to the "bank_personnel" group.
+Loan Customer Management:
+
+View a list of all loan customers.
+Requires authentication as a user belonging to the "bank_personnel" group.
+Loan Application Management:
+
+View a list of all loan applications.
+Create new loan applications.
+View details of a specific loan application.
+Make payments for a specific loan application.
+Requires authentication as a user belonging to the "bank_personnel" group.
+The application follows best practices for Django views using Django REST Framework. It includes comprehensive validation checks, permissions, and error handling to ensure the security and integrity of the loan management system. The use of serializers facilitates data validation and formatting in API responses.
